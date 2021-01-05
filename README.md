@@ -1,7 +1,7 @@
 # Transfermarkt-Scraper
 
 This project aims at implementing APIs for football enthusiasts and researchers
-for the [Transfermarkt Website][https://www.transfermarkt.co.uk/].
+for the [Transfermarkt Website](https://www.transfermarkt.co.uk/).
 
 In addition, in this repo are reported some tools to render through matplotlib
 the pitch representation and the players positions for a match.
