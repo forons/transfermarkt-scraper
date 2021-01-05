@@ -44,6 +44,7 @@ def get_club_data(
     str,
     str,
     str,
+    str,
     Dict[str, Tuple[int, int, int, int, int, int]],
     Dict[str, int],
 ]:
@@ -58,9 +59,12 @@ def get_club_data(
     soup = BeautifulSoup(response.text, "html.parser")
     birth_date = None
     citizenship = None
+    position = None
     for row in soup.find("table", {"class": "auflistung"}).find_all("tr"):
         if row.find("th").text.lower().strip() == "date of birth:":
             birth_date = row.find("a").text.strip()
+        elif row.find("th").text.lower().strip() == "position:":
+            position = row.find("a").text.strip()
         elif row.find("th").text.lower().strip() == "citizenship:":
             country = row.find("img").attrs["title"]
             try:
@@ -113,6 +117,7 @@ def get_club_data(
         return (
             birth_date,
             citizenship,
+            position,
             team,
             time_in_team,
             summary_data,
@@ -140,6 +145,7 @@ def get_club_data(
     return (
         birth_date,
         citizenship,
+        position,
         team,
         time_in_team,
         summary_data,
@@ -244,6 +250,7 @@ def get_complete_data(
             [
                 birth_date,
                 citizenship,
+                position,
                 team,
                 time_in_team,
                 team_summary_data,
@@ -260,6 +267,7 @@ def get_complete_data(
             player_data["birth_date"] = birth_date
             player_data["age"] = age
             player_data["country"] = citizenship
+            player_data["position"] = position
             player_data["team"] = team
             player_data["time_in_team"] = time_in_team
             player_data["year_summary_data"] = team_summary_data
