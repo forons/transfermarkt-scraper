@@ -31,7 +31,7 @@ def find_player(player_name: str) -> List[Tuple[str, str]]:
             player_ref_url = player_url.split("/")[1]
             players_data.append((player_id, player_ref_url))
             break
-    except:
+    except AttributeError:
         raise ValueError(f"{player_name} not found!")
 
     return players_data
@@ -64,19 +64,19 @@ def get_club_data(
         if row.find("th").text.lower().strip() == "date of birth:":
             birth_date = row.find("a").text.strip()
         elif row.find("th").text.lower().strip() == "position:":
-            position = row.find("a").text.strip()
+            position = row.find("td").text.strip()
         elif row.find("th").text.lower().strip() == "citizenship:":
             country = row.find("img").attrs["title"]
             try:
                 citizenship = pycountry.countries.search_fuzzy(country)[
                     0
                 ].alpha_3
-            except:
+            except LookupError:
                 try:
                     citizenship = pycountry.countries.search_fuzzy(
                         country.split("-")
                     )[0].alpha_3
-                except:
+                except LookupError:
                     citizenship = country
     for row in soup.find_all("tr", {"class": "zeile-transfer"}):
         cells = row.find_all("td")
@@ -137,7 +137,7 @@ def get_club_data(
             goals = cells[8].text.strip()
             try:
                 int(goals)
-            except:
+            except ValueError:
                 if len(goals) > 0:
                     goals = cells[9].text.strip()
             if goals:
@@ -173,6 +173,8 @@ def get_national_team_data(
     if len(data_divs) == 0:
         return total_presences, total_goals, total_assists, goals_against
     data_div = data_divs[-1]
+    if data_div.find("tbody") is None:
+        return total_presences, total_goals, total_assists, goals_against
     for row in data_div.find("tbody").find_all("tr", {"class": ""})[1:]:
         cells = row.find_all("td")
         if len(cells) <= 5:
@@ -222,69 +224,77 @@ def get_complete_data(
         player_data = {}
         data = find_player(player)
         for player_id, player_ref_url in data:
-            [
-                nat_presences,
-                nat_goals,
-                nat_assists,
-                nat_goals_data,
-            ] = get_national_team_data(
-                player_id, player_ref_url, to_date=lookup_date
-            )
-            goal_against = -1
-            if team_against:
-                goal_against = nat_goals_data.get(team_against.lower(), -1)
-
-            player_data["full_name"] = player
-            player_data["id"] = player_id
-            player_data["ref_url"] = player_ref_url
-            player_data["nat_presences"] = nat_presences
-            player_data["nat_goals"] = nat_goals
-            player_data["nat_assists"] = nat_assists
-            player_data["nat_goals_against"] = nat_goals_data
-            if to_print:
-                print(
-                    f"{player}|{nat_presences}|{nat_goals}|{nat_assists}|"
-                    f"{goal_against}"
+            try:
+                [
+                    nat_presences,
+                    nat_goals,
+                    nat_assists,
+                    nat_goals_data,
+                ] = get_national_team_data(
+                    player_id, player_ref_url, to_date=lookup_date
                 )
+                goal_against = -1
+                if team_against:
+                    goal_against = nat_goals_data.get(team_against.lower(), -1)
 
-            [
-                birth_date,
-                citizenship,
-                position,
-                team,
-                time_in_team,
-                team_summary_data,
-                team_goals_against,
-            ] = get_club_data(player_id, player_ref_url, date=lookup_date)
-            goal_against = -1
-            if team_against:
-                goal_against = team_goals_against.get(team_against.lower(), -1)
-            _date = arrow.get(lookup_date, "DD/MM/YYYY")
-            cell_date = arrow.get(birth_date, "MMM D, YYYY")
-            age = arrow.get(
-                datetime.datetime.now() - (_date - cell_date)
-            ).humanize()
-            player_data["birth_date"] = birth_date
-            player_data["age"] = age
-            player_data["country"] = citizenship
-            player_data["position"] = position
-            player_data["team"] = team
-            player_data["time_in_team"] = time_in_team
-            player_data["year_summary_data"] = team_summary_data
-            player_data["team_goals_against"] = team_goals_against
-            if to_print:
-                print(
-                    f"{player}|{age}|{birth_date}|{citizenship}|{team}|"
-                    f"{time_in_team}|{goal_against}|{team_summary_data}|"
+                player_data["full_name"] = player
+                player_data["id"] = player_id
+                player_data["ref_url"] = player_ref_url
+                player_data["nat_presences"] = nat_presences
+                player_data["nat_goals"] = nat_goals
+                player_data["nat_assists"] = nat_assists
+                player_data["nat_goals_against"] = nat_goals_data
+                if to_print:
+                    print(
+                        f"{player}|{nat_presences}|{nat_goals}|{nat_assists}|"
+                        f"{goal_against}"
+                    )
+
+                [
+                    birth_date,
+                    citizenship,
+                    position,
+                    team,
+                    time_in_team,
+                    team_summary_data,
+                    team_goals_against,
+                ] = get_club_data(player_id, player_ref_url, date=lookup_date)
+                goal_against = -1
+                if team_against:
+                    goal_against = team_goals_against.get(
+                        team_against.lower(), -1
+                    )
+                _date = arrow.get(lookup_date, "DD/MM/YYYY")
+                cell_date = arrow.get(birth_date, "MMM D, YYYY")
+                age = arrow.get(
+                    datetime.datetime.now() - (_date - cell_date)
+                ).humanize()
+                player_data["birth_date"] = birth_date
+                player_data["age"] = age
+                player_data["country"] = citizenship
+                player_data["position"] = position
+                player_data["team"] = team
+                player_data["time_in_team"] = time_in_team
+                player_data["year_summary_data"] = team_summary_data
+                player_data["team_goals_against"] = team_goals_against
+                if to_print:
+                    print(
+                        f"{player}|{age}|{birth_date}|{citizenship}|{team}|"
+                        f"{time_in_team}|{goal_against}|{team_summary_data}|"
+                    )
+                ret_data.append(player_data)
+            except Exception:
+                raise ValueError(
+                    f'Error while processing:'
+                    f' {player}-{player_id}-{player_ref_url}'
                 )
-            ret_data.append(player_data)
     return ret_data
 
 
 if __name__ == "__main__":
     start_time = time.time()
     curr_date = "09/05/2018"
-    juventus_players = [
+    home_players = [
         "Gianluigi Buffon",
         "Juan Cuadrado",
         "Andrea Barzagli",
@@ -297,7 +307,7 @@ if __name__ == "__main__":
         "Mario Mandzukic",
         "Douglas Costa",
     ]
-    juventus_bench = [
+    home_bench = [
         "Carlo Pinsoglio",
         "Wojciech Szczesny",
         "Mattia De Sciglio",
@@ -312,7 +322,7 @@ if __name__ == "__main__":
         "Federico Bernardeschi",
     ]
 
-    milan_players = [
+    away_players = [
         "Gianluigi Donnarumma",
         "Davide Calabria",
         "Leonardo Bonucci",
@@ -325,7 +335,7 @@ if __name__ == "__main__":
         "Patrick Cutrone",
         "Hakan Calhanoglu",
     ]
-    milan_bench = [
+    away_bench = [
         "Marco Storari",
         "Antonio Donnarumma",
         "Jose Mauri",
@@ -340,13 +350,13 @@ if __name__ == "__main__":
         "Luca Antonelli",
     ]
     print("===================================================")
-    get_complete_data(juventus_players, curr_date, "milan", to_print=True)
+    get_complete_data(home_players, curr_date, "milan", to_print=True)
     print("===================================================")
-    get_complete_data(juventus_bench, curr_date, "milan", to_print=True)
+    get_complete_data(home_bench, curr_date, "milan", to_print=True)
     print("===================================================")
-    get_complete_data(milan_players, curr_date, "juventus", to_print=True)
+    get_complete_data(away_players, curr_date, "juventus", to_print=True)
     print("===================================================")
-    get_complete_data(milan_players, curr_date, "juventus", to_print=True)
+    get_complete_data(away_players, curr_date, "juventus", to_print=True)
     print("===================================================")
 
     print("Done in ", time.time() - start_time)
