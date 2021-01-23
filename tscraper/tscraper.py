@@ -33,6 +33,8 @@ def find_player(player_name: str) -> List[Tuple[str, str]]:
             break
     except AttributeError:
         raise ValueError(f"{player_name} not found!")
+    except TypeError:
+        raise ValueError(f"{player_name} not found!")
 
     return players_data
 
@@ -74,7 +76,7 @@ def get_club_data(
             except LookupError:
                 try:
                     citizenship = pycountry.countries.search_fuzzy(
-                        country.split("-")
+                        country.split("-")[0]
                     )[0].alpha_3
                 except LookupError:
                     citizenship = country
@@ -83,7 +85,8 @@ def get_club_data(
         cell_date = arrow.get(cells[1].text, "MMM D, YYYY")
         if cell_date > _date:
             continue
-        team = cells[-4].text.strip()
+        if team is None:
+            team = cells[-4].text.strip()
         time_in_team = arrow.get(
             datetime.datetime.now() - (_date - cell_date)
         ).humanize()
@@ -172,28 +175,31 @@ def get_national_team_data(
     goals_against = {}
     if len(data_divs) == 0:
         return total_presences, total_goals, total_assists, goals_against
-    data_div = data_divs[-1]
-    if data_div.find("tbody") is None:
-        return total_presences, total_goals, total_assists, goals_against
-    for row in data_div.find("tbody").find_all("tr", {"class": ""})[1:]:
-        cells = row.find_all("td")
-        if len(cells) <= 5:
-            continue
-        date = cells[2].text.strip()
-        if not is_date_between(date, from_date=from_date, to_date=to_date):
-            break
-        team_against = cells[6].text.strip().lower()
-        if team_against not in goals_against:
-            goals_against[team_against] = 0
-        goals = cells[9].text.strip()
-        assists = cells[10].text.strip()
-        # print((date, team_against, goals, assists))
-        if goals:
-            total_goals += int(goals)
-            goals_against[team_against] += int(goals)
-        if assists:
-            total_assists += int(assists)
-        total_presences += 1
+    try:
+        data_div = data_divs[-1]
+        if data_div.find("tbody") is None:
+            return total_presences, total_goals, total_assists, goals_against
+        for row in data_div.find("tbody").find_all("tr", {"class": ""})[1:]:
+            cells = row.find_all("td")
+            if len(cells) <= 5:
+                continue
+            date = cells[2].text.strip()
+            if not is_date_between(date, from_date=from_date, to_date=to_date):
+                break
+            team_against = cells[6].text.strip().lower()
+            if team_against not in goals_against:
+                goals_against[team_against] = 0
+            goals = cells[9].text.strip()
+            assists = cells[10].text.strip()
+            # print((date, team_against, goals, assists))
+            if goals:
+                total_goals += int(goals)
+                goals_against[team_against] += int(goals)
+            if assists:
+                total_assists += int(assists)
+            total_presences += 1
+    except Exception as e:
+        print(e)
     return total_presences, total_goals, total_assists, goals_against
 
 
@@ -224,7 +230,7 @@ def get_complete_data(
         player_data = {}
         data = find_player(player)
         for player_id, player_ref_url in data:
-            try:
+            # try:
                 [
                     nat_presences,
                     nat_goals,
@@ -283,30 +289,102 @@ def get_complete_data(
                         f"{time_in_team}|{goal_against}|{team_summary_data}|"
                     )
                 ret_data.append(player_data)
-            except Exception:
-                raise ValueError(
-                    f'Error while processing:'
-                    f' {player}-{player_id}-{player_ref_url}'
-                )
+            # except Exception as e:
+            #     raise ValueError(
+            #         f'Error while processing:'
+            #         f' {player}-{player_id}-{player_ref_url}-{e}'
+            #     )
     return ret_data
 
 
 if __name__ == "__main__":
     start_time = time.time()
-    curr_date = "09/05/2018"
+    curr_date = "21/01/2021"
     home_players = [
-        "Gianluigi Buffon",
-        "Juan Cuadrado",
-        "Andrea Barzagli",
-        "Medhi Benatia",
-        "Kwadwo Asamoah",
-        "Sami Khedira",
-        "Miralem Pjanic",
-        "Blaise Matuidi",
-        "Paulo Dybala",
-        "Mario Mandzukic",
-        "Douglas Costa",
+
+        # "Andre Onana",
+        # "Noussair Mazraoui",
+        # "Lisandro Magallán",
+        # "Matthijs de Ligt",
+        # "Daley Blind",
+        # "Lasse Schöne",
+        # "Donny van de Beek",
+        # "Frenkie de Jong",
+        # "Hakim Ziyech",
+        # "Kasper Dolberg",
+        # "Dusan Tadić",
+        #
+        # "David Neres",
+        # "Daley Sinkgraven",
+        # "Klaas-Jan Huntelaar",
+        # "Rasmus Kristensen",
+        # "Zakaria Labyad",
+        # "Kostas Lamprou",
+        # "Perr Schuurs",
+        # "Dani de Wit",
+        # "Vaclav Černý",
+        #     "Thomas Strakosha",
+        #     "Marco Parolo",
+        #     "Wesley Hoedt",
+        #     "Francesco Acerbi",
+        #     "Manuel Lazzari",
+        #     "Sergej Milinkovic-Savic",
+        #     "Gonzalo Escalante",
+        #     "Jean-Daniel Akpa Akpro",
+        #     "Mohamed Fares",
+        #     "Andreas Pereira",
+        #     "Vedat Muriqi",
+        # "Simone Colombi",
+        # "Maxime Busi",
+        # "Daan Dierckx",
+        # "Abdoul Hate Bane",
+        # "Giacomo Ricci",
+        # "Simon Sohm",
+        # "Wylan Cyprien",
+        # "Jacopo Dezi",
+        # "Valentin Mihaila",
+        # "Andrea Adorante",
+        # "Mattia Sprocati",
+        # "Luigi Sepe",
+        # "Filippo Rinaldi",
+        # "Reinaldo Radu",
+        # "Jasmin Kurtic",
+        # "Gaston Brugman",
+        # "Hernani",
+        # "Juraj Kucka",
+        # "Drissa Camara",
+        # "Márk Kosznovszky",
+        # "Gabriele Artistico",
+        # "Juan Brunetta",
+        "André Lopes Silva",
+
     ]
+    # home_players = [
+    #     #
+    #     # "Kenneth Vermeer",
+    #     # "Calvin Verdonk",
+    #     # "Eric Fernando Botteghin",
+    #     # "Sven van Beek",
+    #     # "Jeremiah St. Juste",
+    #     # "Tonny Vilhena",
+    #     # "Jens Toornstra",
+    #     # "Jordy Clasie",
+    #     # "Sam Larsson",
+    #     # "Robin van Persie",
+    #     # "Steven Berghuis",
+    #     #
+    #     # "Nicolai Jørgensen",
+    #     # "Ridgeciano Haps",
+    #     # "Yassin Ayoub",
+    #     # "Bart Nieuwkoop",
+    #     # "Jan-Arie van der Heijden",
+    #     # "Joris Delle",
+    #     # "Luis Fernando Sinisterra",
+    #     # "Orkun Kökçü",
+    #     "Jordy Wehrmann",
+    #     "Ramon ten Hove",
+    #     "Dylan Vente",
+    # ]
     home_bench = [
         "Carlo Pinsoglio",
         "Wojciech Szczesny",
